@@ -1,0 +1,25 @@
+# Environment & Secrets (NEVER COMMIT)
+.env
+*.env
+.env.*
+!.env.example
+
+# Python
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+*.pytest_cache/
+
+# Node.js & React Frontend
+react_frontend/node_modules/
+react_frontend/dist/
+*.log
+
+# OS & IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

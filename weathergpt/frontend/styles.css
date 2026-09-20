@@ -1,0 +1,1159 @@
+/* ==========================================================================
+   WeatherGPT — Design System & Stylesheet
+   Modern Glassmorphic Dark Architecture with Dynamic Weather Elements
+   ========================================================================== */
+
+:root {
+  --bg-main: #090d16;
+  --bg-surface: rgba(18, 24, 38, 0.75);
+  --bg-card: rgba(23, 32, 51, 0.65);
+  --bg-card-hover: rgba(30, 42, 68, 0.8);
+  --bg-input: rgba(14, 20, 32, 0.85);
+
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-active: rgba(0, 210, 255, 0.4);
+  --border-focus: #00d2ff;
+
+  --accent-cyan: #00d2ff;
+  --accent-blue: #3a7bd5;
+  --accent-purple: #8b5cf6;
+  --accent-green: #10b981;
+  --accent-amber: #f59e0b;
+  --accent-red: #ef4444;
+
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+
+  --font-heading: 'Outfit', sans-serif;
+  --font-body: 'Plus Jakarta Sans', sans-serif;
+
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+
+  --shadow-glow: 0 0 25px rgba(0, 210, 255, 0.15);
+  --shadow-card: 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg-main);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.6;
+  overflow-x: hidden;
+  min-height: 100vh;
+  position: relative;
+}
+
+/* Ambient Radiant Background */
+.ambient-glow {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(120px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.glow-1 {
+  width: 500px;
+  height: 500px;
+  top: -100px;
+  left: -100px;
+  background: radial-gradient(circle, rgba(58, 123, 213, 0.25) 0%, rgba(0, 210, 255, 0.05) 70%, transparent 100%);
+  animation: floatOrb 16s ease-in-out infinite alternate;
+}
+
+.glow-2 {
+  width: 600px;
+  height: 600px;
+  bottom: -150px;
+  right: -100px;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.2) 0%, rgba(0, 210, 255, 0.04) 70%, transparent 100%);
+  animation: floatOrb 20s ease-in-out infinite alternate-reverse;
+}
+
+@keyframes floatOrb {
+  0% { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(60px, 40px) scale(1.15); }
+}
+
+/* Application Wrapper */
+.app-container {
+  position: relative;
+  z-index: 1;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 16px 24px 28px;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  gap: 16px;
+}
+
+/* ==========================================================================
+   Header Styles
+   ========================================================================== */
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 24px;
+  background: var(--bg-surface);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+
+.brand-group {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.brand-logo-wrap {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  background: linear-gradient(135deg, rgba(0, 210, 255, 0.2), rgba(58, 123, 213, 0.3));
+  border: 1px solid rgba(0, 210, 255, 0.3);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logo-icon {
+  font-size: 24px;
+}
+
+.status-dot-pulse {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 10px;
+  height: 10px;
+  background-color: var(--accent-green);
+  border: 2px solid var(--bg-main);
+  border-radius: 50%;
+  animation: pulseGreen 2s infinite;
+}
+
+@keyframes pulseGreen {
+  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+  70% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+.brand-title {
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--text-primary);
+}
+
+.brand-accent {
+  background: linear-gradient(135deg, var(--accent-cyan), #a855f7);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.brand-subtitle {
+  font-size: 11px;
+  color: var(--text-secondary);
+  letter-spacing: 0.2px;
+}
+
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.control-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  padding: 4px 12px;
+  border-radius: var(--radius-md);
+}
+
+.control-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.custom-select {
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  outline: none;
+  cursor: pointer;
+}
+
+.custom-select option {
+  background: #111827;
+  color: #fff;
+}
+
+.btn-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.btn-pill:hover {
+  border-color: var(--accent-cyan);
+  color: var(--text-primary);
+}
+
+.btn-pill.active {
+  background: rgba(0, 210, 255, 0.12);
+  border-color: rgba(0, 210, 255, 0.5);
+  color: var(--accent-cyan);
+}
+
+.watchdog-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: var(--radius-xl);
+  font-size: 12px;
+  font-weight: 600;
+  color: #34d399;
+}
+
+.pulse-indicator {
+  width: 8px;
+  height: 8px;
+  background-color: var(--accent-green);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--accent-green);
+}
+
+/* ==========================================================================
+   Extreme Weather Banner
+   ========================================================================== */
+.hazard-banner {
+  background: linear-gradient(90deg, rgba(239, 68, 68, 0.25), rgba(185, 28, 28, 0.4));
+  border: 1px solid rgba(239, 68, 68, 0.6);
+  border-radius: var(--radius-md);
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  backdrop-filter: blur(12px);
+  animation: pulseHazard 2.5s infinite alternate;
+}
+
+@keyframes pulseHazard {
+  0% { box-shadow: 0 0 15px rgba(239, 68, 68, 0.2); }
+  100% { box-shadow: 0 0 30px rgba(239, 68, 68, 0.45); }
+}
+
+.hazard-content {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.hazard-icon {
+  font-size: 26px;
+  animation: shake 1.5s infinite;
+}
+
+@keyframes shake {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-8deg); }
+  75% { transform: rotate(8deg); }
+}
+
+.hazard-info strong {
+  font-family: var(--font-heading);
+  font-size: 15px;
+  color: #fca5a5;
+  display: block;
+}
+
+.hazard-info p {
+  font-size: 12px;
+  color: #fee2e2;
+}
+
+.hazard-dismiss {
+  background: transparent;
+  border: none;
+  color: #fca5a5;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* ==========================================================================
+   Main Layout & Chat Section
+   ========================================================================== */
+.main-layout {
+  display: grid;
+  grid-template-columns: 1fr 390px;
+  gap: 20px;
+  flex: 1;
+}
+
+.chat-section {
+  background: var(--bg-surface);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 120px);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
+.chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: rgba(14, 20, 32, 0.4);
+}
+
+.chat-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.chat-title-wrap h2 {
+  font-family: var(--font-heading);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.agent-tag {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: rgba(0, 210, 255, 0.12);
+  color: var(--accent-cyan);
+  border: 1px solid rgba(0, 210, 255, 0.3);
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 700;
+}
+
+.btn-ghost {
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  font-size: 12px;
+  padding: 5px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-ghost:hover {
+  color: var(--text-primary);
+  border-color: var(--text-muted);
+}
+
+/* Messages Stream */
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  scroll-behavior: smooth;
+}
+
+.chat-messages::-webkit-scrollbar {
+  width: 6px;
+}
+.chat-messages::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+.message-card {
+  display: flex;
+  gap: 14px;
+  max-width: 90%;
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.user-message {
+  align-self: flex-end;
+  flex-direction: row-reverse;
+}
+
+.assistant-message {
+  align-self: flex-start;
+}
+
+.avatar-col {
+  flex-shrink: 0;
+}
+
+.assistant-avatar, .user-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  border: 1px solid var(--border-subtle);
+}
+
+.assistant-avatar {
+  background: linear-gradient(135deg, rgba(0, 210, 255, 0.2), rgba(58, 123, 213, 0.3));
+  border-color: rgba(0, 210, 255, 0.4);
+}
+
+.user-avatar {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.25), rgba(217, 70, 239, 0.3));
+  border-color: rgba(139, 92, 246, 0.4);
+}
+
+.message-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.user-message .message-body {
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.25), rgba(79, 70, 229, 0.3));
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  padding: 14px 18px;
+  border-radius: 18px 4px 18px 18px;
+  color: #fff;
+  font-size: 14px;
+}
+
+.assistant-message .message-body {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  padding: 16px 20px;
+  border-radius: 4px 18px 18px 18px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.message-sender {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.badge-tag {
+  font-size: 10px;
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  padding: 1px 6px;
+  border-radius: 10px;
+}
+
+.message-text {
+  font-size: 14px;
+  color: var(--text-primary);
+  line-height: 1.6;
+}
+
+.message-text p {
+  margin-bottom: 8px;
+}
+
+.message-text p:last-child {
+  margin-bottom: 0;
+}
+
+/* ==========================================================================
+   COMPULSORY ADD-ON: Tool-Selection Trace Panel (Judges Inspection)
+   ========================================================================== */
+.trace-panel {
+  background: rgba(10, 15, 26, 0.85);
+  border: 1px solid rgba(0, 210, 255, 0.3);
+  border-left: 4px solid var(--accent-cyan);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  margin-top: 8px;
+  font-size: 11.5px;
+}
+
+.trace-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.trace-chip {
+  font-family: monospace;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(0, 210, 255, 0.15);
+  color: var(--accent-cyan);
+  border: 1px solid rgba(0, 210, 255, 0.3);
+}
+
+.tool-current { background: rgba(59, 130, 246, 0.2); color: #60a5fa; border-color: rgba(59, 130, 246, 0.4); }
+.tool-forecast { background: rgba(139, 92, 246, 0.2); color: #c084fc; border-color: rgba(139, 92, 246, 0.4); }
+.tool-crop { background: rgba(16, 185, 129, 0.2); color: #34d399; border-color: rgba(16, 185, 129, 0.4); }
+.tool-alert { background: rgba(239, 68, 68, 0.2); color: #f87171; border-color: rgba(239, 68, 68, 0.4); }
+.tool-climate { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border-color: rgba(245, 158, 11, 0.4); }
+
+.trace-title {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.3px;
+}
+
+.trace-latency {
+  font-family: monospace;
+  color: var(--accent-green);
+  font-size: 10px;
+}
+
+.trace-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.trace-row {
+  display: flex;
+  gap: 6px;
+}
+
+.t-label {
+  color: var(--text-muted);
+  font-weight: 600;
+  min-width: 65px;
+}
+
+.t-val {
+  color: #e2e8f0;
+}
+
+/* ==========================================================================
+   Rich Weather Visual Widgets (Embedded in Chat)
+   ========================================================================== */
+.weather-telemetry-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.telemetry-pill {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  text-align: center;
+}
+
+.tel-label {
+  display: block;
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.tel-val {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  font-family: var(--font-heading);
+}
+
+/* Daily Forecast Cards */
+.forecast-cards-row {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 8px 2px;
+  margin: 8px 0;
+}
+
+.f-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  min-width: 90px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.f-card .f-date {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.f-card .f-icon {
+  font-size: 20px;
+  margin: 4px 0;
+}
+
+.f-card .f-temp {
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.f-card .f-rain {
+  font-size: 10px;
+  color: #60a5fa;
+}
+
+/* Chart Canvas Wrapper */
+.chart-container-box {
+  background: rgba(10, 15, 26, 0.6);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  margin: 10px 0;
+  position: relative;
+  height: 180px;
+}
+
+/* Agro Advisory Card */
+.agro-advisory-card {
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  margin: 8px 0;
+}
+
+.agro-advisory-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.agro-advisory-header strong {
+  color: #34d399;
+  font-family: var(--font-heading);
+}
+
+.agro-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+}
+
+.agro-badge.restricted {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+}
+
+/* Audio Readout Button */
+.msg-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.btn-audio-speak {
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  padding: 3px 8px;
+  font-size: 11px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s;
+}
+
+.btn-audio-speak:hover {
+  color: var(--accent-cyan);
+  border-color: var(--accent-cyan);
+}
+
+/* ==========================================================================
+   Typing Indicator
+   ========================================================================== */
+.typing-indicator {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 24px;
+  background: rgba(14, 20, 32, 0.6);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.typing-bubble {
+  display: flex;
+  gap: 4px;
+}
+
+.typing-dot {
+  width: 7px;
+  height: 7px;
+  background: var(--accent-cyan);
+  border-radius: 50%;
+  animation: typingBounce 1.4s infinite ease-in-out both;
+}
+
+.typing-dot:nth-child(1) { animation-delay: -0.32s; }
+.typing-dot:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes typingBounce {
+  0%, 80%, 100% { transform: scale(0); opacity: 0.4; }
+  40% { transform: scale(1); opacity: 1; }
+}
+
+.typing-text {
+  font-size: 12px;
+  color: var(--accent-cyan);
+  font-weight: 500;
+}
+
+/* ==========================================================================
+   Chat Input Container & Mic Controls
+   ========================================================================== */
+.chat-input-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 20px;
+  background: rgba(14, 20, 32, 0.95);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.mic-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  flex-shrink: 0;
+}
+
+.mic-btn:hover {
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 15px rgba(0, 210, 255, 0.3);
+}
+
+.mic-btn.recording {
+  background: rgba(239, 68, 68, 0.25);
+  border-color: var(--accent-red);
+  color: #fff;
+  animation: micPulse 1.2s infinite;
+}
+
+@keyframes micPulse {
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+  70% { box-shadow: 0 0 0 12px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+.chat-form {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.chat-form input {
+  flex: 1;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  padding: 12px 20px;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.chat-form input:focus {
+  border-color: var(--accent-cyan);
+  box-shadow: var(--shadow-glow);
+}
+
+.send-btn {
+  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+  border: none;
+  border-radius: var(--radius-xl);
+  padding: 12px 24px;
+  color: #0b0f19;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: transform 0.15s ease, box-shadow 0.2s;
+}
+
+.send-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 18px rgba(0, 210, 255, 0.4);
+}
+
+/* ==========================================================================
+   Sidebar & Widgets
+   ========================================================================== */
+.sidebar-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: calc(100vh - 120px);
+  overflow-y: auto;
+}
+
+.sidebar-section::-webkit-scrollbar {
+  width: 5px;
+}
+.sidebar-section::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+}
+
+.glass-card {
+  background: var(--bg-surface);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  box-shadow: var(--shadow-card);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.card-header h3 {
+  font-family: var(--font-heading);
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.2px;
+}
+
+.badge-mini {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(0, 210, 255, 0.12);
+  color: var(--accent-cyan);
+}
+
+.card-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+/* Quick Test Prompts */
+.quick-prompts-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.quick-btn {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.quick-btn:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--accent-cyan);
+  transform: translateX(4px);
+}
+
+.qb-icon {
+  font-size: 18px;
+}
+
+.qb-text strong {
+  display: block;
+  font-size: 12px;
+  color: var(--text-primary);
+}
+
+.qb-text small {
+  font-size: 10px;
+  color: var(--accent-cyan);
+  font-family: monospace;
+}
+
+/* Saved Locations Watchdog */
+.saved-locations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.saved-loc-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  font-size: 12px;
+}
+
+.loc-info strong {
+  color: var(--text-primary);
+  display: block;
+}
+
+.loc-info small {
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.loc-status-pill {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--accent-green);
+}
+
+.loc-status-pill.danger {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+}
+
+.add-loc-form {
+  display: flex;
+  gap: 6px;
+}
+
+.add-loc-form input {
+  flex: 1;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 7px 12px;
+  color: #fff;
+  font-size: 12px;
+  outline: none;
+}
+
+.add-loc-form input:focus {
+  border-color: var(--accent-cyan);
+}
+
+.btn-add {
+  width: 34px;
+  background: var(--accent-cyan);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: #0b0f19;
+  font-weight: 800;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.btn-xs {
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  color: var(--accent-cyan);
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* Atmospheric Radar Simulation Widget */
+.radar-live-tag {
+  font-size: 9px;
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.radar-display {
+  position: relative;
+  width: 100%;
+  height: 150px;
+  background: radial-gradient(circle, #0e1e38 0%, #060a12 100%);
+  border: 1px solid rgba(0, 210, 255, 0.25);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.radar-grid {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    radial-gradient(circle, transparent 25%, rgba(0, 210, 255, 0.08) 26%, transparent 27%, transparent 49%, rgba(0, 210, 255, 0.08) 50%, transparent 51%, transparent 74%, rgba(0, 210, 255, 0.08) 75%, transparent 76%),
+    linear-gradient(to right, transparent 49.5%, rgba(0, 210, 255, 0.1) 50%, transparent 50.5%),
+    linear-gradient(to bottom, transparent 49.5%, rgba(0, 210, 255, 0.1) 50%, transparent 50.5%);
+}
+
+.radar-sweep {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 180px;
+  height: 180px;
+  transform-origin: top left;
+  background: conic-gradient(from 0deg, rgba(0, 210, 255, 0.4) 0deg, transparent 60deg, transparent 360deg);
+  animation: radarRotate 4s linear infinite;
+  border-radius: 50%;
+}
+
+@keyframes radarRotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.radar-blip {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: #38bdf8;
+  border-radius: 50%;
+  box-shadow: 0 0 8px #38bdf8;
+}
+
+.blip-1 { top: 35%; left: 60%; animation: blipFade 3s infinite; }
+.blip-2 { top: 65%; left: 40%; animation: blipFade 2.5s infinite 1s; }
+
+@keyframes blipFade {
+  0%, 100% { opacity: 0.2; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.4); }
+}
+
+.radar-info-overlay {
+  position: absolute;
+  bottom: 8px;
+  left: 10px;
+  right: 10px;
+  display: flex;
+  justify-content: space-between;
+  font-family: monospace;
+  font-size: 9.5px;
+  color: var(--accent-cyan);
+  background: rgba(6, 10, 18, 0.7);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* ==========================================================================
+   Responsive Breakpoints
+   ========================================================================== */
+@media (max-width: 1024px) {
+  .main-layout {
+    grid-template-columns: 1fr;
+  }
+  .sidebar-section {
+    height: auto;
+  }
+  .chat-section {
+    height: 600px;
+  }
+}
+
+@media (max-width: 640px) {
+  .app-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .header-controls {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+  .weather-telemetry-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
