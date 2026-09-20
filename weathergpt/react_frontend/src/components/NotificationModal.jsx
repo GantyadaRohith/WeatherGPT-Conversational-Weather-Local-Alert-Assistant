@@ -11,16 +11,17 @@ export default function NotificationModal({
   
   // Test Dispatch State
   const [testCity, setTestCity] = useState(defaultCity);
-  const [testPhone, setTestPhone] = useState('+919876543210');
+  const [testPhone, setTestPhone] = useState('+916302293711');
   const [testChannel, setTestChannel] = useState('whatsapp');
   const [testSeverity, setTestSeverity] = useState('RED');
   const [testScenario, setTestScenario] = useState('cyclone');
+  const [dispatchMode, setDispatchMode] = useState('simulator'); // 'simulator' or 'live'
   const [isSending, setIsSending] = useState(false);
   const [dispatchResult, setDispatchResult] = useState(null);
 
   // Subscribe State
   const [subName, setSubName] = useState('');
-  const [subPhone, setSubPhone] = useState('+919876543210');
+  const [subPhone, setSubPhone] = useState('+916302293711');
   const [subCity, setSubCity] = useState(defaultCity);
   const [subChannel, setSubChannel] = useState('whatsapp');
   const [subRainThreshold, setSubRainThreshold] = useState(25);
@@ -74,7 +75,7 @@ export default function NotificationModal({
           action: preset.action,
           phone: testPhone,
           channel: testChannel,
-          simulate: false
+          simulate: dispatchMode === 'simulator'
         })
       });
 
@@ -108,7 +109,6 @@ export default function NotificationModal({
       });
 
       if (res.ok) {
-        // Also save to saved-locations watchdog in DB
         await fetch('/api/saved-locations', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -153,7 +153,7 @@ export default function NotificationModal({
             className={`tab-btn ${activeTab === 'test' ? 'active' : ''}`}
             onClick={() => setActiveTab('test')}
           >
-            ⚡ Live Evaluator Dispatch Bench
+            ⚡ Evaluator Dispatch Bench
           </button>
           <button
             className={`tab-btn ${activeTab === 'subscribe' ? 'active' : ''}`}
@@ -166,9 +166,39 @@ export default function NotificationModal({
         <div className="modal-body">
           {activeTab === 'test' && (
             <form onSubmit={handleSendTest} className="dispatch-form">
-              <p className="tab-helper-text">
-                Demonstrates end-to-end alert formatting and delivery via WhatsApp Cloud API or Twilio SMS with instant delivery audit logging:
-              </p>
+              {/* Mode Selector */}
+              <div className="dispatch-mode-selector">
+                <label style={{ fontSize: '12px', fontWeight: 600, color: '#94a3b8', display: 'block', marginBottom: '6px' }}>
+                  Select Execution Mode:
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '14px' }}>
+                  <button
+                    type="button"
+                    className={`channel-btn ${dispatchMode === 'simulator' ? 'wa active' : ''}`}
+                    onClick={() => setDispatchMode('simulator')}
+                    style={{ padding: '8px 12px' }}
+                  >
+                    <span className="ch-icon">⚡</span>
+                    <div>
+                      <strong style={{ color: '#34d399' }}>Evaluator Simulator (Recommended)</strong>
+                      <small>100% Free · Verified Receipts · Zero Sandbox Friction</small>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    className={`channel-btn ${dispatchMode === 'live' ? 'sms active' : ''}`}
+                    onClick={() => setDispatchMode('live')}
+                    style={{ padding: '8px 12px' }}
+                  >
+                    <span className="ch-icon">📡</span>
+                    <div>
+                      <strong style={{ color: '#38bdf8' }}>Live Twilio REST API</strong>
+                      <small>Dispatches through active Twilio Gateway</small>
+                    </div>
+                  </button>
+                </div>
+              </div>
 
               <div className="form-row-grid">
                 <div className="form-group">
@@ -244,7 +274,7 @@ export default function NotificationModal({
 
               <div className="dispatch-action-row">
                 <button type="submit" className="btn-dispatch-now" disabled={isSending}>
-                  {isSending ? '📡 Dispatching Alert...' : `🚀 Send ${testChannel === 'whatsapp' ? 'WhatsApp' : 'SMS'} Alert Now`}
+                  {isSending ? '📡 Dispatching Alert...' : `🚀 Dispatch ${testChannel === 'whatsapp' ? 'WhatsApp' : 'SMS'} Alert (${dispatchMode === 'simulator' ? 'Simulated' : 'Live Gateway'})`}
                 </button>
               </div>
 
@@ -252,8 +282,11 @@ export default function NotificationModal({
               {dispatchResult && (
                 <div className="dispatch-receipt-box">
                   <div className="receipt-header">
-                    <div className="receipt-status-tag">
-                      <span className="check-icon">✓</span>
+                    <div className="receipt-status-tag" style={{
+                      background: dispatchResult.dispatch_status?.includes('failed') ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.18)',
+                      color: dispatchResult.dispatch_status?.includes('failed') ? '#f87171' : '#34d399'
+                    }}>
+                      <span className="check-icon">{dispatchResult.dispatch_status?.includes('failed') ? '✕' : '✓'}</span>
                       <span>{dispatchResult.dispatch_status?.toUpperCase()}</span>
                     </div>
                     <span className="receipt-provider">
@@ -264,6 +297,20 @@ export default function NotificationModal({
                     </span>
                   </div>
 
+                  {dispatchResult.dispatch_status?.includes('failed') && (
+                    <div style={{
+                      background: 'rgba(239, 68, 68, 0.12)',
+                      border: '1px solid rgba(239, 68, 68, 0.3)',
+                      borderRadius: '6px',
+                      padding: '8px 12px',
+                      marginBottom: '10px',
+                      color: '#fca5a5',
+                      fontSize: '12px'
+                    }}>
+                      <strong>⚠️ Notice:</strong> {dispatchResult.dispatch_status}
+                    </div>
+                  )}
+
                   <div className={`message-preview-bubble ${dispatchResult.channel}`}>
                     <div className="bubble-badge">
                       {dispatchResult.channel === 'whatsapp' ? '🟢 WhatsApp Notification Preview' : '🔵 Twilio SMS Preview'}
@@ -271,7 +318,7 @@ export default function NotificationModal({
                     <pre className="bubble-content">{dispatchResult.formatted_message}</pre>
                     <div className="bubble-footer">
                       <span>Recipient: {dispatchResult.recipient}</span>
-                      <span className="read-receipt">✓✓ Delivered</span>
+                      <span className="read-receipt">{dispatchResult.dispatch_status?.includes('failed') ? 'Status Logged in DB' : '✓✓ Delivered'}</span>
                     </div>
                   </div>
                 </div>
@@ -304,7 +351,7 @@ export default function NotificationModal({
                     className="form-input"
                     value={subPhone}
                     onChange={(e) => setSubPhone(e.target.value)}
-                    placeholder="+919876543210"
+                    placeholder="+916302293711"
                     required
                   />
                 </div>

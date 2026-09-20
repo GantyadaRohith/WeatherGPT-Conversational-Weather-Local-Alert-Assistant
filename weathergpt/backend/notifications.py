@@ -23,7 +23,12 @@ class NotificationManager:
         self.twilio_account_sid: str = os.getenv("TWILIO_ACCOUNT_SID", "").strip()
         self.twilio_auth_token: str = os.getenv("TWILIO_AUTH_TOKEN", "").strip()
         self.twilio_phone_number: str = os.getenv("TWILIO_PHONE_NUMBER", "").strip()
-        self.twilio_whatsapp_from: str = os.getenv("TWILIO_WHATSAPP_FROM", "").strip() or self.twilio_phone_number
+        
+        wa_from = os.getenv("TWILIO_WHATSAPP_FROM", "").strip()
+        if not wa_from or wa_from == self.twilio_phone_number:
+            self.twilio_whatsapp_from: str = "whatsapp:+14155238886"
+        else:
+            self.twilio_whatsapp_from: str = wa_from if wa_from.startswith("whatsapp:") else f"whatsapp:{wa_from}"
 
         self.whatsapp_token: str = os.getenv("WHATSAPP_TOKEN", "").strip()
         self.whatsapp_phone_number_id: str = os.getenv("WHATSAPP_PHONE_NUMBER_ID", "").strip()
@@ -90,7 +95,6 @@ class NotificationManager:
                 f"_Automated Alert by WeatherGPT Agentic AI_"
             )
         else:
-            # Concise SMS format (under 160 chars where possible)
             return (
                 f"[WeatherGPT] {severity} ALERT for {location}: {atype}. "
                 f"{msg} Safety Directive: {action} ({ts})"
@@ -99,9 +103,14 @@ class NotificationManager:
     async def send_twilio_sms(self, to_phone: str, message: str) -> Dict[str, Any]:
         """Dispatches SMS via Twilio REST API."""
         url = f"https://api.twilio.com/2010-04-01/Accounts/{self.twilio_account_sid}/Messages.json"
+        # Ensure proper E.164 format
+        target = to_phone.strip()
+        if not target.startswith("+"):
+            target = f"+91{target}" if len(target) == 10 else f"+{target}"
+
         data = {
             "From": self.twilio_phone_number,
-            "To": to_phone,
+            "To": target,
             "Body": message
         }
         async with httpx.AsyncClient(timeout=10.0) as client:
@@ -120,9 +129,22 @@ class NotificationManager:
                     "raw": res_data
                 }
             else:
+                try:
+                    err_json = resp.json()
+                    err_code = err_json.get("code")
+                    err_msg = err_json.get("message", resp.text)
+                    if err_code in [572002, 21608]:
+                        friendly = "Twilio Trial account can only send SMS to numbers added under Twilio Console > Verified Caller IDs."
+                    elif err_code == 572006:
+                        friendly = "Twilio Trial accounts restrict freeform SMS text. Switch to 'Simulator Mode' for hackathon evaluation or test WhatsApp Sandbox."
+                    else:
+                        friendly = err_msg
+                except Exception:
+                    friendly = resp.text
+
                 return {
                     "success": False,
-                    "status": f"failed (HTTP {resp.status_code})",
+                    "status": f"failed: {friendly}",
                     "provider": "twilio_sms",
                     "error": resp.text
                 }
@@ -130,13 +152,12 @@ class NotificationManager:
     async def send_twilio_whatsapp(self, to_phone: str, message: str) -> Dict[str, Any]:
         """Dispatches WhatsApp via Twilio WhatsApp sandbox/production."""
         url = f"https://api.twilio.com/2010-04-01/Accounts/{self.twilio_account_sid}/Messages.json"
-        from_number = self.twilio_whatsapp_from
-        if not from_number.startswith("whatsapp:"):
-            from_number = f"whatsapp:{from_number}"
+        from_number = "whatsapp:+14155238886"
         
-        target = to_phone
-        if not target.startswith("whatsapp:"):
-            target = f"whatsapp:{target}"
+        target = to_phone.strip().replace("whatsapp:", "")
+        if not target.startswith("+"):
+            target = f"+91{target}" if len(target) == 10 else f"+{target}"
+        target = f"whatsapp:{target}"
 
         data = {
             "From": from_number,
@@ -159,9 +180,22 @@ class NotificationManager:
                     "raw": res_data
                 }
             else:
+                try:
+                    err_json = resp.json()
+                    err_code = err_json.get("code")
+                    err_msg = err_json.get("message", resp.text)
+                    if err_code == 21654:
+                        friendly = "Twilio WhatsApp Sandbox requires you to first send 'join <code-word>' to +14155238886 on WhatsApp to activate your 24h test session."
+                    elif err_code in [572002, 21608, 63007]:
+                        friendly = "Sandbox requires recipient to send join code to +14155238886 first, or add recipient under Twilio Verified Caller IDs."
+                    else:
+                        friendly = err_msg
+                except Exception:
+                    friendly = resp.text
+
                 return {
                     "success": False,
-                    "status": f"failed (HTTP {resp.status_code})",
+                    "status": f"failed: {friendly}",
                     "provider": "twilio_whatsapp",
                     "error": resp.text
                 }
@@ -224,11 +258,6 @@ class NotificationManager:
         channel: str = "whatsapp",
         force_simulation: bool = False
     ) -> Dict[str, Any]:
-        """
-        Unified dispatch method:
-        Selects Twilio SMS, Twilio WhatsApp, Meta Cloud API, or Evaluator Simulation.
-        Commits audit record directly into MongoDB / JSON Document Store.
-        """
         phone = recipient_phone.strip() if recipient_phone else "+919876543210"
         chan = channel.lower()
         formatted_msg = self.format_alert_message(alert, location, channel=chan)
@@ -238,7 +267,6 @@ class NotificationManager:
         if force_simulation:
             result = await self.simulate_dispatch(phone, formatted_msg, chan)
         else:
-            # Try live provider if configured
             if chan == "sms" and self.twilio_account_sid and self.twilio_auth_token and self.twilio_phone_number:
                 try:
                     result = await self.send_twilio_sms(phone, formatted_msg)
@@ -255,10 +283,8 @@ class NotificationManager:
                 except Exception as e:
                     result = {"success": False, "status": f"error: {str(e)}", "provider": "twilio_whatsapp"}
             else:
-                # Automatic graceful fallback to Evaluator Live Simulation
                 result = await self.simulate_dispatch(phone, formatted_msg, chan)
 
-        # Record to Database (MongoDB or fallback JSON store)
         dispatch_record = {
             "location": location,
             "severity": alert.get("severity", "YELLOW"),
@@ -281,9 +307,9 @@ class NotificationManager:
             "recipient": phone,
             "channel": chan,
             "alert": alert,
-            "formatted_message": formatted_msg
+            "formatted_message": formatted_msg,
+            "error_detail": result.get("error")
         }
 
 
-# Global singleton instance
 notification_manager = NotificationManager()
