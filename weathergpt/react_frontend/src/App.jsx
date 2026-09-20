@@ -11,6 +11,7 @@ import HazardAlertBanner from './components/HazardAlertBanner';
 import NotificationModal from './components/NotificationModal';
 import DispatchHistoryDrawer from './components/DispatchHistoryDrawer';
 import { API_BASE_URL } from './config';
+import { Trash2, Mic, MicOff, Send, User, Bot, Volume2 } from 'lucide-react';
 
 export default function App() {
   // App State
@@ -29,7 +30,7 @@ export default function App() {
     {
       id: 'init',
       sender: 'assistant',
-      text: 'Namaste! I am **WeatherGPT**, an AI-powered conversational weather & local alert assistant. Ask me in **English, à¤¹à¤¿à¤¨à¥à¤¦à¥€, à¦¬à¦¾à¦‚à¦²à¦¾, à®¤à®®à®¿à®´à¯, à°¤à±†à°²à±à°—à±, or à¤®à¤°à¤¾à¤ à¥€** for real-time weather, 14-day forecasts, Indian farmer crop advisories, or disaster alerts.',
+      text: 'Namaste! I am **WeatherGPT**, an AI-powered conversational weather & local alert assistant. Ask me in **English, हिन्दी, বাংলা, தமிழ், తెలుగు, or मराठी** for real-time weather, 14-day forecasts, Indian farmer crop advisories, or disaster alerts.',
       trace: {
         tool_picked: 'system_init',
         parameters: { fixed_location: 'New Delhi', mode: 'multi_agent' },
@@ -278,7 +279,7 @@ export default function App() {
         {
           id: 'err_' + Date.now(),
           sender: 'assistant',
-          text: `âš ï¸ Error communicating with WeatherGPT agent (${err.message}). Ensure the backend server is running.`,
+          text: `⚠️ Error communicating with WeatherGPT agent (${err.message}). Ensure the backend server is running.`,
           trace: {
             tool_picked: 'error_fallback',
             parameters: { error: err.message },
@@ -456,8 +457,8 @@ export default function App() {
       }
 
       // Bullet lists
-      if (line.trim().startsWith('â€¢ ') || line.trim().startsWith('- ') || line.trim().startsWith('* ')) {
-        const content = line.trim().replace(/^[â€¢\-\*]\s+/, '');
+      if (line.trim().startsWith('• ') || line.trim().startsWith('- ') || line.trim().startsWith('* ')) {
+        const content = line.trim().replace(/^[•\-*]\s+/, '');
         elements.push(
           <li key={`li_${i}`} style={{ marginLeft: '16px', marginBottom: '4px' }}>
             {parseInlineFormatting(content)}
@@ -531,7 +532,7 @@ export default function App() {
               onClick={() => setMessages([])}
               title="Clear Conversation"
             >
-              ðŸ”„ Clear
+              <Trash2 size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> Clear
             </button>
           </div>
 
@@ -546,7 +547,7 @@ export default function App() {
               >
                 <div className="avatar-col">
                   <div className={msg.sender === 'user' ? 'user-avatar' : 'assistant-avatar'}>
-                    {msg.sender === 'user' ? 'ðŸ‘¤' : 'ðŸ¤–'}
+                    {msg.sender === 'user' ? <User size={16} /> : <Bot size={16} />}
                   </div>
                 </div>
 
@@ -598,7 +599,7 @@ export default function App() {
                         }
                         title="Listen to audio readout"
                       >
-                        <span>ðŸ”Š Read Out</span>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Volume2 size={14} /> Read Out</span>
                       </button>
                     </div>
                   )}
@@ -629,7 +630,7 @@ export default function App() {
               onClick={toggleSpeechRecognition}
               title="Voice Input (Speech-to-Text for Rural Accessibility)"
             >
-              ðŸŽ™ï¸
+              {isRecording ? <MicOff size={18} /> : <Mic size={18} />}
             </button>
 
             <form
@@ -647,7 +648,7 @@ export default function App() {
               />
               <button type="submit" className="send-btn">
                 <span>Send</span>
-                <span>âž¤</span>
+                <Send size={15} />
               </button>
             </form>
           </div>
