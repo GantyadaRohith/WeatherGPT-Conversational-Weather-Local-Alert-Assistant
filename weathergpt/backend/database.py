@@ -25,6 +25,12 @@ try:
 except ImportError:
     MOTOR_AVAILABLE = False
 
+try:
+    import certifi
+    CA_FILE = certifi.where()
+except ImportError:
+    CA_FILE = None
+
 
 DB_FILE_PATH = Path(__file__).parent.parent / "weathergpt_db.json"
 
@@ -160,10 +166,14 @@ class DatabaseManager:
 
     async def initialize(self):
         """Initializes database connection or selects fallback."""
-        if MOTOR_AVAILABLE and self.mongodb_uri and (self.mongodb_uri.startswith("mongodb://") or self.mongodb_uri.startswith("mongodb+srv://")):
+        uri = (self.mongodb_uri or "").strip()
+        if MOTOR_AVAILABLE and uri and (uri.startswith("mongodb://") or uri.startswith("mongodb+srv://")):
             try:
-                # 2 second timeout for connection check
-                self.motor_client = AsyncIOMotorClient(self.mongodb_uri, serverSelectionTimeoutMS=2000)
+                kwargs = {"serverSelectionTimeoutMS": 5000}
+                if CA_FILE and uri.startswith("mongodb+srv://"):
+                    kwargs["tlsCAFile"] = CA_FILE
+
+                self.motor_client = AsyncIOMotorClient(uri, **kwargs)
                 await self.motor_client.admin.command('ping')
                 self.mongo_db = self.motor_client[self.db_name]
                 self.engine_type = "mongodb"

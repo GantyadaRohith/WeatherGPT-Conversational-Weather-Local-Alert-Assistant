@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../config';
 import React, { useState, useEffect } from 'react';
 
 export default function SettingsModal({
@@ -30,12 +31,12 @@ export default function SettingsModal({
   useEffect(() => {
     if (isOpen) {
       // Fetch DB & Notif status
-      fetch('/api/database/status')
+      fetch(`${API_BASE_URL}/api/database/status`)
         .then(r => r.json())
         .then(data => setDbStatus(data))
         .catch(console.warn);
 
-      fetch('/api/notifications/status')
+      fetch(`${API_BASE_URL}/api/notifications/status`)
         .then(r => r.json())
         .then(data => setNotifStatus(data))
         .catch(console.warn);
@@ -54,7 +55,7 @@ export default function SettingsModal({
   const handleSaveNotifConfig = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch('/api/notifications/config', {
+      const res = await fetch(`${API_BASE_URL}/api/notifications/config`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -67,7 +68,7 @@ export default function SettingsModal({
       });
       if (res.ok) {
         setStatusMsg('Notification keys saved successfully!');
-        const sRes = await fetch('/api/notifications/status');
+        const sRes = await fetch(`${API_BASE_URL}/api/notifications/status`);
         if (sRes.ok) setNotifStatus(await sRes.json());
         setTimeout(() => setStatusMsg(''), 2000);
       }

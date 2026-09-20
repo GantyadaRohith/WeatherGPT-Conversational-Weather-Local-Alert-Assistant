@@ -71,3 +71,66 @@ Use the built-in quick test buttons on the right sidebar or type these queries:
    > *"Simulate extreme cyclone alert test for Chennai"*
 6. **Multilingual Test (Hindi)**:
    > *"वाराणसी में आज का मौसम कैसा है?"*
+
+
+---
+
+## 🌐 Cloud Production Deployment Guide (Vercel + Render + MongoDB Atlas)
+
+WeatherGPT is designed for modular, decoupled production deployment:
+- **Frontend**: [Vercel](https://vercel.com/) (React 19 + Vite + Glassmorphism)
+- **Backend**: [Render](https://render.com/) (FastAPI + LangGraph + Uvicorn)
+- **Database**: [MongoDB Atlas](https://www.mongodb.com/cloud/atlas) (M0 Free Cloud Cluster)
+
+---
+
+### Step 1: Set up MongoDB Atlas (Cloud Database)
+1. Go to [mongodb.com/cloud/atlas](https://www.mongodb.com/cloud/atlas) and create/sign in to your account.
+2. Click **Create Deployment** and choose the **M0 Shared (Free)** tier.
+3. **Database User**: Create a username and password (e.g. `weather_admin` and a secure password).
+4. **Network Access**: Under Security → Network Access, click **Add IP Address** and choose **Allow Access From Anywhere (`0.0.0.0/0`)**. *(This is required so Render's cloud servers can connect to your database)*.
+5. Click **Connect** → **Drivers** (Python):
+   Copy your connection URI:
+   ```
+   mongodb+srv://<username>:<password>@cluster0.xxxxx.mongodb.net/weathergpt?retryWrites=true&w=majority
+   ```
+
+---
+
+### Step 2: Deploy Backend to Render
+1. Go to [render.com](https://render.com/) and sign in with GitHub.
+2. Click **New +** → **Web Service** → Select your repository:
+   `WeatherGPT-Conversational-Weather-Local-Alert-Assistant`
+3. Configure the settings:
+   - **Name**: `weathergpt-backend`
+   - **Root Directory**: `weathergpt`
+   - **Runtime**: `Python 3`
+   - **Build Command**: `pip install -r requirements.txt`
+   - **Start Command**: `uvicorn backend.main:app --host 0.0.0.0 --port $PORT`
+4. Under **Environment Variables**, add:
+   - `WEATHER_LLM_PROVIDER` = `groq`
+   - `GROQ_API_KEY` = *your Groq API key*
+   - `GROQ_MODEL` = `openai/gpt-oss-20b`
+   - `MONGODB_URI` = *your MongoDB Atlas URI from Step 1*
+   - `MONGODB_DB` = `weathergpt`
+   - *(Optional Twilio keys)* `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`
+5. Click **Deploy Web Service**.
+   Render will build the service and give you a public URL:
+   👉 **`https://your-service-name.onrender.com`**
+   *(Test that it is live by opening `https://your-service-name.onrender.com/health`)*.
+
+---
+
+### Step 3: Deploy Frontend to Vercel
+1. Go to [vercel.com](https://vercel.com/) and sign in with GitHub.
+2. Click **Add New...** → **Project** → Import your repository.
+3. In the project configuration:
+   - **Root Directory**: Click *Edit* and select **`weathergpt/react_frontend`**.
+   - **Framework Preset**: `Vite` (auto-detected).
+4. Under **Environment Variables**, add:
+   - **Name**: `VITE_API_BASE_URL`
+   - **Value**: Your live Render backend URL from Step 2:
+     `https://your-service-name.onrender.com` *(do not add trailing slash)*
+5. Click **Deploy**!
+   Vercel will build the frontend and give you a live production link:
+   👉 **`https://your-app-name.vercel.app`**

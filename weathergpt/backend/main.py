@@ -442,7 +442,23 @@ async def remove_subscriber(phone: str):
     return {"status": "success" if success else "not_found", "message": f"Removed subscriber with phone {phone}"}
 
 
-# --- Static Frontend Serving ---
+# --- Health Check Endpoint (Render Production Monitoring) ---
+@app.get("/health")
+@app.get("/api/health")
+async def health_check():
+    """Health check endpoint for Render / cloud monitoring."""
+    db_stat = await db_manager.get_status()
+    notif_stat = notification_manager.get_status()
+    return {
+        "status": "healthy",
+        "service": "WeatherGPT API Gateway",
+        "version": "2.1.0",
+        "database": db_stat,
+        "notifications": notif_stat
+    }
+
+
+# --- Static Frontend Serving & Cloud Fallback ---
 react_dist = os.path.join(os.path.dirname(__file__), "..", "react_frontend", "dist")
 legacy_frontend = os.path.join(os.path.dirname(__file__), "..", "frontend")
 
@@ -450,3 +466,15 @@ if os.path.exists(react_dist):
     app.mount("/", StaticFiles(directory=react_dist, html=True), name="react_frontend")
 elif os.path.exists(legacy_frontend):
     app.mount("/", StaticFiles(directory=legacy_frontend, html=True), name="frontend")
+else:
+    @app.get("/")
+    async def root_gateway():
+        return {
+            "service": "WeatherGPT API Gateway (Render Production)",
+            "status": "online",
+            "docs": "/docs",
+            "health": "/health",
+            "database_status": "/api/database/status",
+            "message": "Backend API is live. Connect your Vercel frontend via VITE_API_BASE_URL."
+        }
+

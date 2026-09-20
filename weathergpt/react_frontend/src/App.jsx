@@ -10,6 +10,7 @@ import SettingsModal from './components/SettingsModal';
 import HazardAlertBanner from './components/HazardAlertBanner';
 import NotificationModal from './components/NotificationModal';
 import DispatchHistoryDrawer from './components/DispatchHistoryDrawer';
+import { API_BASE_URL } from './config';
 
 export default function App() {
   // App State
@@ -28,7 +29,7 @@ export default function App() {
     {
       id: 'init',
       sender: 'assistant',
-      text: 'Namaste! I am **WeatherGPT**, an AI-powered conversational weather & local alert assistant. Ask me in **English, हिन्दी, বাংলা, தமிழ், తెలుగు, or मराठी** for real-time weather, 14-day forecasts, Indian farmer crop advisories, or disaster alerts.',
+      text: 'Namaste! I am **WeatherGPT**, an AI-powered conversational weather & local alert assistant. Ask me in **English, à¤¹à¤¿à¤¨à¥à¤¦à¥€, à¦¬à¦¾à¦‚à¦²à¦¾, à®¤à®®à®¿à®´à¯, à°¤à±†à°²à±à°—à±, or à¤®à¤°à¤¾à¤ à¥€** for real-time weather, 14-day forecasts, Indian farmer crop advisories, or disaster alerts.',
       trace: {
         tool_picked: 'system_init',
         parameters: { fixed_location: 'New Delhi', mode: 'multi_agent' },
@@ -61,7 +62,7 @@ export default function App() {
   const fetchHeroData = async (city) => {
     setHeroLoading(true);
     try {
-      const res = await fetch(`/api/weather/hero?city=${encodeURIComponent(city)}`);
+      const res = await fetch(`${API_BASE_URL}/api/weather/hero?city=${encodeURIComponent(city)}`);
       if (res.ok) {
         const data = await res.json();
         setHeroData(data);
@@ -82,7 +83,7 @@ export default function App() {
   // Load Saved Locations
   const fetchSavedLocations = async () => {
     try {
-      const res = await fetch('/api/saved-locations');
+      const res = await fetch(`${API_BASE_URL}/api/saved-locations`);
       if (res.ok) {
         const data = await res.json();
         setSavedLocations(data);
@@ -95,7 +96,7 @@ export default function App() {
   // Run Watchdog Hazard Check (strictly for saved list status, never hijacks current location's banner)
   const checkWatchdog = async () => {
     try {
-      const res = await fetch('/api/alerts/watchdog-check');
+      const res = await fetch(`${API_BASE_URL}/api/alerts/watchdog-check`);
       if (res.ok) {
         const results = await res.json();
         // Only trigger banner if the alert is directly for the user's fixed/active location
@@ -114,7 +115,7 @@ export default function App() {
   // Check LLM Config
   const fetchLLMConfig = async () => {
     try {
-      const res = await fetch('/api/config/llm');
+      const res = await fetch(`${API_BASE_URL}/api/config/llm`);
       if (res.ok) {
         const data = await res.json();
         setLlmProvider(data.provider || 'local');
@@ -127,7 +128,7 @@ export default function App() {
   // Check Database & Dispatches Status
   const fetchDatabaseStatus = async () => {
     try {
-      const res = await fetch('/api/database/status');
+      const res = await fetch(`${API_BASE_URL}/api/database/status`);
       if (res.ok) {
         const data = await res.json();
         setDbStatus(data);
@@ -232,7 +233,7 @@ export default function App() {
     setIsTyping(true);
 
     try {
-      const res = await fetch('/api/chat', {
+      const res = await fetch(`${API_BASE_URL}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -277,7 +278,7 @@ export default function App() {
         {
           id: 'err_' + Date.now(),
           sender: 'assistant',
-          text: `⚠️ Error communicating with WeatherGPT agent (${err.message}). Ensure the backend server is running.`,
+          text: `âš ï¸ Error communicating with WeatherGPT agent (${err.message}). Ensure the backend server is running.`,
           trace: {
             tool_picked: 'error_fallback',
             parameters: { error: err.message },
@@ -310,7 +311,7 @@ export default function App() {
         try {
           const lat = pos.coords.latitude;
           const lon = pos.coords.longitude;
-          const res = await fetch(`/api/weather/reverse-geocode?lat=${lat}&lon=${lon}`);
+          const res = await fetch(`${API_BASE_URL}/api/weather/reverse-geocode?lat=${lat}&lon=${lon}`);
           if (res.ok) {
             const data = await res.json();
             const cityName = data.name || 'Current Location';
@@ -336,7 +337,7 @@ export default function App() {
   // Save Locations Watchdog Handlers (Backed by MongoDB & Persistent Store)
   const handleAddLocation = async (locName, threshold_rain_mm = 25.0, phone = '+919876543210', channel = 'whatsapp') => {
     try {
-      await fetch('/api/saved-locations', {
+      await fetch(`${API_BASE_URL}/api/saved-locations`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -356,7 +357,7 @@ export default function App() {
 
   const handleDeleteLocation = async (locName) => {
     try {
-      await fetch(`/api/saved-locations/${encodeURIComponent(locName)}`, {
+      await fetch(`${API_BASE_URL}/api/saved-locations/${encodeURIComponent(locName)}`, {
         method: 'DELETE'
       });
       fetchSavedLocations();
@@ -369,7 +370,7 @@ export default function App() {
   // Save LLM Config
   const handleSaveLLM = async (provider, apiKey) => {
     try {
-      await fetch('/api/config/llm', {
+      await fetch(`${API_BASE_URL}/api/config/llm`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ provider, api_key: apiKey })
@@ -455,8 +456,8 @@ export default function App() {
       }
 
       // Bullet lists
-      if (line.trim().startsWith('• ') || line.trim().startsWith('- ') || line.trim().startsWith('* ')) {
-        const content = line.trim().replace(/^[•\-\*]\s+/, '');
+      if (line.trim().startsWith('â€¢ ') || line.trim().startsWith('- ') || line.trim().startsWith('* ')) {
+        const content = line.trim().replace(/^[â€¢\-\*]\s+/, '');
         elements.push(
           <li key={`li_${i}`} style={{ marginLeft: '16px', marginBottom: '4px' }}>
             {parseInlineFormatting(content)}
@@ -530,7 +531,7 @@ export default function App() {
               onClick={() => setMessages([])}
               title="Clear Conversation"
             >
-              🔄 Clear
+              ðŸ”„ Clear
             </button>
           </div>
 
@@ -545,7 +546,7 @@ export default function App() {
               >
                 <div className="avatar-col">
                   <div className={msg.sender === 'user' ? 'user-avatar' : 'assistant-avatar'}>
-                    {msg.sender === 'user' ? '👤' : '🤖'}
+                    {msg.sender === 'user' ? 'ðŸ‘¤' : 'ðŸ¤–'}
                   </div>
                 </div>
 
@@ -597,7 +598,7 @@ export default function App() {
                         }
                         title="Listen to audio readout"
                       >
-                        <span>🔊 Read Out</span>
+                        <span>ðŸ”Š Read Out</span>
                       </button>
                     </div>
                   )}
@@ -628,7 +629,7 @@ export default function App() {
               onClick={toggleSpeechRecognition}
               title="Voice Input (Speech-to-Text for Rural Accessibility)"
             >
-              🎙️
+              ðŸŽ™ï¸
             </button>
 
             <form
@@ -646,7 +647,7 @@ export default function App() {
               />
               <button type="submit" className="send-btn">
                 <span>Send</span>
-                <span>➤</span>
+                <span>âž¤</span>
               </button>
             </form>
           </div>

@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../config';
 import React, { useState } from 'react';
 
 export default function NotificationModal({
@@ -64,7 +65,7 @@ export default function NotificationModal({
     const preset = scenarioPresets[testScenario] || scenarioPresets.cyclone;
 
     try {
-      const res = await fetch('/api/notifications/send', {
+      const res = await fetch(`${API_BASE_URL}/api/notifications/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -97,7 +98,7 @@ export default function NotificationModal({
   const handleSubscribeSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch('/api/subscribers', {
+      const res = await fetch(`${API_BASE_URL}/api/subscribers`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -109,7 +110,7 @@ export default function NotificationModal({
       });
 
       if (res.ok) {
-        await fetch('/api/saved-locations', {
+        await fetch(`${API_BASE_URL}/api/saved-locations`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

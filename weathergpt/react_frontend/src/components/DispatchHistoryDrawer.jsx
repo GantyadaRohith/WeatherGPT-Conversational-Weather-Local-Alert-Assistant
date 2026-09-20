@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../config';
 import React, { useState, useEffect } from 'react';
 
 export default function DispatchHistoryDrawer({
@@ -14,8 +15,8 @@ export default function DispatchHistoryDrawer({
     setLoading(true);
     try {
       const [dispRes, dbRes] = await Promise.all([
-        fetch('/api/notifications/dispatches?limit=25'),
-        fetch('/api/database/status')
+        fetch(`${API_BASE_URL}/api/notifications/dispatches?limit=25`),
+        fetch(`${API_BASE_URL}/api/database/status`)
       ]);
 
       if (dispRes.ok) {
@@ -36,7 +37,7 @@ export default function DispatchHistoryDrawer({
   const handleTriggerWatchdogDispatch = async () => {
     setTriggering(true);
     try {
-      const res = await fetch('/api/alerts/watchdog-dispatch', { method: 'POST' });
+      const res = await fetch(`${API_BASE_URL}/api/alerts/watchdog-dispatch`, { method: 'POST' });
       if (res.ok) {
         await fetchDispatches();
       }
