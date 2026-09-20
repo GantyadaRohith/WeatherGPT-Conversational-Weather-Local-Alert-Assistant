@@ -8,6 +8,8 @@ import ToolTraceCard from './components/ToolTraceCard';
 import Sidebar from './components/Sidebar';
 import SettingsModal from './components/SettingsModal';
 import HazardAlertBanner from './components/HazardAlertBanner';
+import NotificationModal from './components/NotificationModal';
+import DispatchHistoryDrawer from './components/DispatchHistoryDrawer';
 
 export default function App() {
   // App State
@@ -45,6 +47,12 @@ export default function App() {
   // Watchdog & Alerts State
   const [savedLocations, setSavedLocations] = useState([]);
   const [activeHazard, setActiveHazard] = useState(null);
+
+  // Database & Notification Modals State
+  const [isNotifModalOpen, setIsNotifModalOpen] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [dbStatus, setDbStatus] = useState(null);
+  const [dispatchCount, setDispatchCount] = useState(0);
 
   const messagesEndRef = useRef(null);
   const recognitionRef = useRef(null);
@@ -116,13 +124,33 @@ export default function App() {
     }
   };
 
+  // Check Database & Dispatches Status
+  const fetchDatabaseStatus = async () => {
+    try {
+      const res = await fetch('/api/database/status');
+      if (res.ok) {
+        const data = await res.json();
+        setDbStatus(data);
+        if (data.counts?.alert_dispatches !== undefined) {
+          setDispatchCount(data.counts.alert_dispatches);
+        }
+      }
+    } catch (e) {
+      console.warn('DB status fetch error:', e);
+    }
+  };
+
   useEffect(() => {
     fetchHeroData(fixedCity);
     fetchSavedLocations();
     fetchLLMConfig();
+    fetchDatabaseStatus();
     checkWatchdog();
 
-    const timer = setInterval(checkWatchdog, 60000);
+    const timer = setInterval(() => {
+      checkWatchdog();
+      fetchDatabaseStatus();
+    }, 60000);
     return () => clearInterval(timer);
   }, []);
 
@@ -305,15 +333,22 @@ export default function App() {
     );
   };
 
-  // Save Locations Watchdog Handlers
-  const handleAddLocation = async (locName) => {
+  // Save Locations Watchdog Handlers (Backed by MongoDB & Persistent Store)
+  const handleAddLocation = async (locName, threshold_rain_mm = 25.0, phone = '+919876543210', channel = 'whatsapp') => {
     try {
       await fetch('/api/saved-locations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ location: locName })
+        body: JSON.stringify({
+          location: locName,
+          threshold_rain_mm: Number(threshold_rain_mm),
+          notify_heatwave: true,
+          phone: phone,
+          channel: channel
+        })
       });
       fetchSavedLocations();
+      fetchDatabaseStatus();
     } catch (e) {
       console.warn(e);
     }
@@ -325,6 +360,7 @@ export default function App() {
         method: 'DELETE'
       });
       fetchSavedLocations();
+      fetchDatabaseStatus();
     } catch (e) {
       console.warn(e);
     }
@@ -457,9 +493,13 @@ export default function App() {
         voiceEnabled={voiceEnabled}
         onToggleVoice={() => setVoiceEnabled(!voiceEnabled)}
         onOpenSettings={() => setIsSettingsOpen(true)}
+        onOpenDispatcher={() => setIsDrawerOpen(true)}
+        onOpenSubscriber={() => setIsNotifModalOpen(true)}
         llmProvider={llmProvider}
         watchdogCount={savedLocations.length}
         activeAlertCount={activeHazard ? 1 : 0}
+        dispatchCount={dispatchCount}
+        dbEngine={dbStatus?.engine || 'json_document_store'}
       />
 
       {/* Extreme Weather Hazard Banner */}
@@ -622,15 +662,42 @@ export default function App() {
           onAddLocation={handleAddLocation}
           onDeleteLocation={handleDeleteLocation}
           onCheckWatchdog={checkWatchdog}
+          onOpenDispatcher={() => setIsDrawerOpen(true)}
+          onOpenSubscriber={() => setIsNotifModalOpen(true)}
+          dbStatus={dbStatus}
         />
       </main>
 
-      {/* LLM Settings Modal */}
+      {/* LLM & System Settings Modal */}
       <SettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
         currentProvider={llmProvider}
         onSave={handleSaveLLM}
+      />
+
+      {/* WhatsApp & SMS Notification / Subscribe Modal */}
+      <NotificationModal
+        isOpen={isNotifModalOpen}
+        onClose={() => setIsNotifModalOpen(false)}
+        defaultCity={fixedCity}
+        onSubscribe={() => {
+          fetchSavedLocations();
+          fetchDatabaseStatus();
+        }}
+        onTestDispatch={() => {
+          fetchDatabaseStatus();
+        }}
+      />
+
+      {/* MongoDB Alert Dispatch History Drawer */}
+      <DispatchHistoryDrawer
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        onOpenDispatcher={() => {
+          setIsDrawerOpen(false);
+          setIsNotifModalOpen(true);
+        }}
       />
     </div>
   );

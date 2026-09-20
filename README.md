@@ -57,6 +57,9 @@
 | **6** | **Multilingual Support** | Native Indian language support for **English**, **हिन्दी (Hindi)**, **తెలుగు (Telugu)**, **বাংলা (Bengali)**, **தமிழ் (Tamil)**, and **मराठी (Marathi)**. |
 | **7** | **Historical Climate Comparison** | Compares today's observations against meteorological archives from the exact same calendar week across previous years. |
 | **8** | **Voice STT & TTS** | Microphone Speech-to-Text and browser speech synthesis for hands-free and rural farmer accessibility. |
+| **9** | **Database Persistence (MongoDB)** | **MongoDB Atlas / local MongoDB** via `motor` with zero-crash **Persistent JSON Document Store** fallback (`weathergpt_db.json`) for saved locations, alert dispatch history, and community subscribers. |
+| **10** | **Twilio & WhatsApp Cloud API** | Multi-channel disaster alerts via **Meta WhatsApp Cloud API** & **Twilio SMS/WhatsApp**, plus a **Live Evaluator Simulator** with realistic delivery receipts (`✓ Delivered`). |
+| **11** | **Scheduled Alert Watchdog** | Automated 60-second background watchdog periodically evaluating saved locations against meteorological thresholds and dispatching warnings. |
 | **★** | **COMPULSORY ADD-ON** | **Judges' Tool-Selection Trace Panel**: Displays tool called, extracted parameters, execution latency (ms), confidence rating, and reasoning for full auditability. |
 
 ---

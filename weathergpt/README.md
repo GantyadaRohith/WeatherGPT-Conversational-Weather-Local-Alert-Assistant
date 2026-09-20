@@ -23,6 +23,9 @@ It satisfies all **8 core problem requirements** and features the **Compulsory A
 | 6 | **Multilingual support** | Full native support for **English**, **हिन्दी (Hindi)**, **বাংলা (Bengali)**, **தமிழ் (Tamil)**, **తెలుగు (Telugu)**, and **मराठी (Marathi)**. |
 | 7 | **Climate trend analysis** | Compares current observations against historical meteorological archive data from the same week in past years. |
 | 8 | **Voice-enabled accessibility** | **Microphone Speech-to-Text (STT)** and **Natural Speech Synthesis (TTS)** for non-literate and rural users. |
+| 9 | **Database Persistence (MongoDB)** | **MongoDB Atlas / Local instance** support via `motor` + zero-crash **Persistent JSON Document Store** fallback (`weathergpt_db.json`) for saved locations, alert dispatches, and subscribers. |
+| 10 | **Twilio & WhatsApp Cloud API** | Push alerts via **Meta WhatsApp Cloud API** & **Twilio SMS/WhatsApp**, plus a **Live Evaluator Simulator** with realistic delivery receipts (`✓ Delivered`). |
+| 11 | **Scheduled Alert Watchdog** | Automated 60-second background watchdog evaluating saved locations against meteorological thresholds and dispatching warnings. |
 | **★** | **COMPULSORY ADD-ON** | **Tool-Selection Trace**: Every response renders a trace badge showing tool picked, parameters used, confidence score, and one-line reasoning for hackathon judges! |
 
 ---
