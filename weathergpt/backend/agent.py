@@ -52,6 +52,7 @@ class WeatherAgent:
         forecast_data = None
         advisory_data = None
         historical_data = None
+        past_data = None
         alerts_list = []
 
         if tool_name == "get_current_weather":
@@ -65,6 +66,9 @@ class WeatherAgent:
             advisory_data = tool_data.get("advisory")
             weather_card = tool_data.get("weather")
             alerts_list = tool_data.get("alerts", [])
+        elif tool_name == "get_past_weather":
+            past_data = tool_data.get("past_weather")
+            weather_card = tool_data.get("current")
         elif tool_name == "get_severe_alerts":
             alerts_list = tool_data.get("alerts", [])
             weather_card = tool_data.get("weather")
@@ -83,6 +87,7 @@ class WeatherAgent:
             "forecast_data": forecast_data,
             "advisory_data": advisory_data,
             "historical_data": historical_data,
+            "past_data": past_data,
             "alerts": alerts_list,
             "language": language
         }

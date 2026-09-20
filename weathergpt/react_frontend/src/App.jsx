@@ -59,6 +59,9 @@ export default function App() {
         setHeroData(data);
         if (data.alerts && data.alerts.length > 0) {
           setActiveHazard(data.alerts[0]);
+        } else {
+          // Clear active hazard when active location is safe
+          setActiveHazard(null);
         }
       }
     } catch (e) {
@@ -81,15 +84,18 @@ export default function App() {
     }
   };
 
-  // Run Watchdog Hazard Check
+  // Run Watchdog Hazard Check (strictly for saved list status, never hijacks current location's banner)
   const checkWatchdog = async () => {
     try {
       const res = await fetch('/api/alerts/watchdog-check');
       if (res.ok) {
         const results = await res.json();
-        const alertHit = results.find(r => r.active_alerts && r.active_alerts.length > 0);
-        if (alertHit) {
-          setActiveHazard(alertHit.active_alerts[0]);
+        // Only trigger banner if the alert is directly for the user's fixed/active location
+        const activeAlert = results.find(
+          r => r.location?.toLowerCase() === fixedCity?.toLowerCase() && r.active_alerts && r.active_alerts.length > 0
+        );
+        if (activeAlert) {
+          setActiveHazard(activeAlert.active_alerts[0]);
         }
       }
     } catch (e) {
@@ -220,6 +226,7 @@ export default function App() {
         forecast_data: data.forecast_data,
         advisory_data: data.advisory_data,
         historical_data: data.historical_data,
+        past_data: data.past_data,
         alerts: data.alerts,
         voice_summary: data.voice_summary,
         language: data.language
@@ -272,20 +279,38 @@ export default function App() {
     fetchHeroData(city);
   };
 
-  // GPS Geolocation Handler
+  // Real GPS Geolocation Handler with reverse geocoding
   const handleGPSClick = () => {
     if (!navigator.geolocation) {
       alert('Geolocation is not supported by your browser.');
       return;
     }
+    setHeroLoading(true);
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        // Geocode roughly or use coordinates
-        handleCityChange('New Delhi');
+      async (pos) => {
+        try {
+          const lat = pos.coords.latitude;
+          const lon = pos.coords.longitude;
+          const res = await fetch(`/api/weather/reverse-geocode?lat=${lat}&lon=${lon}`);
+          if (res.ok) {
+            const data = await res.json();
+            const cityName = data.name || 'Current Location';
+            setFixedCity(cityName);
+            fetchHeroData(cityName);
+          } else {
+            handleCityChange('New Delhi');
+          }
+        } catch (err) {
+          console.warn('Reverse geocode error:', err);
+          handleCityChange('New Delhi');
+        }
       },
-      () => {
-        handleCityChange('New Delhi');
-      }
+      (err) => {
+        console.warn('Geolocation permission error:', err);
+        alert('Location access was denied or timed out. You can type any city into the search box.');
+        setHeroLoading(false);
+      },
+      { timeout: 8000 }
     );
   };
 
@@ -328,32 +353,104 @@ export default function App() {
     }
   };
 
-  // Markdown renderer for bullets & bold
+  // Parse inline markdown formatting (bold, links, code)
+  const parseInlineFormatting = (text) => {
+    if (!text) return text;
+    const parts = text.split(/(\*\*.*?\*\*)/g).map((part, idx) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return <strong key={idx}>{part.slice(2, -2)}</strong>;
+      }
+      return part;
+    });
+    return parts;
+  };
+
+  // Full Markdown renderer supporting tables, bullet lists, and paragraphs
   const renderMessageText = (txt) => {
     if (!txt) return null;
-    return txt.split('\n').map((line, i) => {
-      let content = line;
-      // Bold replace
-      const parts = content.split(/(\*\*.*?\*\*)/g).map((part, pIdx) => {
-        if (part.startsWith('**') && part.endsWith('**')) {
-          return <strong key={pIdx}>{part.slice(2, -2)}</strong>;
-        }
-        return part;
-      });
 
-      if (line.startsWith('• ')) {
-        return (
-          <li key={i} style={{ marginLeft: '16px', marginBottom: '4px' }}>
-            {parts}
+    const lines = txt.split('\n');
+    const elements = [];
+    let i = 0;
+
+    while (i < lines.length) {
+      const line = lines[i];
+
+      // Detect start of Markdown Table (consecutive lines starting and ending with '|')
+      if (line.trim().startsWith('|') && line.trim().endsWith('|')) {
+        const tableLines = [];
+        while (i < lines.length && lines[i].trim().startsWith('|') && lines[i].trim().endsWith('|')) {
+          tableLines.push(lines[i].trim());
+          i++;
+        }
+
+        if (tableLines.length >= 2) {
+          // Parse header row
+          const headerCells = tableLines[0]
+            .split('|')
+            .slice(1, -1)
+            .map((c) => c.trim());
+
+          // Skip separator row (contains '---')
+          const isSep = tableLines[1].includes('---');
+          const bodyLines = isSep ? tableLines.slice(2) : tableLines.slice(1);
+
+          elements.push(
+            <div key={`tbl_${i}`} className="md-table-wrap">
+              <table className="md-table">
+                <thead>
+                  <tr>
+                    {headerCells.map((h, hIdx) => (
+                      <th key={hIdx}>{parseInlineFormatting(h)}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {bodyLines.map((bLine, rIdx) => {
+                    const cells = bLine
+                      .split('|')
+                      .slice(1, -1)
+                      .map((c) => c.trim());
+                    return (
+                      <tr key={rIdx}>
+                        {cells.map((cell, cIdx) => (
+                          <td key={cIdx}>{parseInlineFormatting(cell)}</td>
+                        ))}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          );
+          continue;
+        }
+      }
+
+      // Bullet lists
+      if (line.trim().startsWith('• ') || line.trim().startsWith('- ') || line.trim().startsWith('* ')) {
+        const content = line.trim().replace(/^[•\-\*]\s+/, '');
+        elements.push(
+          <li key={`li_${i}`} style={{ marginLeft: '16px', marginBottom: '4px' }}>
+            {parseInlineFormatting(content)}
           </li>
         );
+        i++;
+        continue;
       }
-      return (
-        <p key={i} style={{ marginBottom: line.trim() ? '6px' : '0' }}>
-          {parts}
-        </p>
-      );
-    });
+
+      // Paragraphs
+      if (line.trim()) {
+        elements.push(
+          <p key={`p_${i}`} style={{ marginBottom: '6px' }}>
+            {parseInlineFormatting(line)}
+          </p>
+        );
+      }
+      i++;
+    }
+
+    return elements;
   };
 
   return (

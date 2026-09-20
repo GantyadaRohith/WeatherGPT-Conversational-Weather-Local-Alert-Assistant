@@ -85,7 +85,7 @@ class LLMClient:
                         {"role": "user", "content": prompt}
                     ],
                     "temperature": 0.2,
-                    "max_tokens": 800
+                    "max_tokens": 1800
                 }
                 try:
                     resp = await client.post(url, headers=headers, json=payload)
@@ -113,7 +113,7 @@ class LLMClient:
             ],
             "generationConfig": {
                 "temperature": 0.2,
-                "maxOutputTokens": 800
+                "maxOutputTokens": 1800
             }
         }
         async with httpx.AsyncClient(timeout=15.0) as client:
@@ -139,7 +139,7 @@ class LLMClient:
                 {"role": "user", "content": prompt}
             ],
             "temperature": 0.2,
-            "max_tokens": 800
+            "max_tokens": 1800
         }
         async with httpx.AsyncClient(timeout=15.0) as client:
             resp = await client.post(url, headers=headers, json=payload)
@@ -170,9 +170,10 @@ Selected Tool: {tool_name}
 Ground Truth Retrieved Data: {json.dumps(tool_data, default=str)}
 
 Task: Provide a natural, empathetic, and comprehensive response answering the user's weather/advisory query.
-- STRICT GROUNDING: Use ONLY the ground truth retrieved data above.
+- STRICT GROUNDING: Use ONLY the ground truth retrieved data above. Never invent facts or hallucinate.
 - Answer in the requested language ({language}).
-- For farmers, explain irrigation and pesticide spraying safety clearly based on the provided numbers.
+- When multi-day or past weather data is provided (e.g. past 10 days, 7-day forecast), ALWAYS include a complete, properly formatted Markdown table with columns (Date | Condition | Max Temp | Min Temp | Rain | Wind). Never truncate rows or stop halfway.
+- For farmers asking about best crops, display the top recommended crops in a ranked table with suitability percentage and actionable irrigation/spraying instructions.
 - For extreme hazards, clearly state precautions and actions required.
 """
         try:

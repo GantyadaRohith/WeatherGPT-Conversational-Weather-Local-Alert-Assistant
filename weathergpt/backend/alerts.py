@@ -7,12 +7,9 @@ and scheduled saved-location alert watchdog.
 from typing import Any, Dict, List, Optional
 from datetime import datetime
 
-# In-memory saved locations store for user's alert monitoring
-SAVED_LOCATIONS: Dict[str, Dict[str, Any]] = {
-    "Varanasi": {"location": "Varanasi", "threshold_rain_mm": 20, "notify_heatwave": True, "created_at": "2026-09-19"},
-    "Mumbai": {"location": "Mumbai", "threshold_rain_mm": 35, "notify_heatwave": False, "created_at": "2026-09-19"},
-    "Jaipur": {"location": "Jaipur", "threshold_rain_mm": 15, "notify_heatwave": True, "created_at": "2026-09-19"}
-}
+# In-memory saved locations store for user's alert monitoring (initially empty; populated by user)
+SAVED_LOCATIONS: Dict[str, Dict[str, Any]] = {}
+
 
 
 def check_extreme_weather_alerts(weather: Dict[str, Any], forecast: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:

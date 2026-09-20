@@ -4,6 +4,7 @@ Live meteorological data integration using Open-Meteo free APIs.
 No API key required. High accuracy worldwide with rich support for India.
 """
 
+import unicodedata
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 import httpx
@@ -39,6 +40,7 @@ WMO_CODE_MAP = {
 
 CITY_ALIASES = {
     "vizag": "Visakhapatnam",
+    "visakha": "Visakhapatnam",
     "visakhapatnam": "Visakhapatnam",
     "bengaluru": "Bengaluru",
     "bangalore": "Bengaluru",
@@ -89,40 +91,98 @@ FALLBACK_CITIES = {
 }
 
 
-async def geocode_location(location_name: str) -> Optional[Dict[str, Any]]:
-    """Geocodes a place name into latitude, longitude, and formatted name."""
-    clean_name = location_name.strip().lower()
+def sanitize_text(text: str) -> str:
+    """Normalizes accented/diacritic characters to clean ASCII representations."""
+    if not text:
+        return ""
+    normalized = unicodedata.normalize('NFKD', str(text))
+    return normalized.encode('ascii', 'ignore').decode('ascii')
+
+
+async def geocode_location(location_name: str) -> Dict[str, Any]:
+    """
+    Universal geocoder for any city or district worldwide with India prioritization.
+    Prevents encoding crashes and strips noise words if search fails.
+    """
+    raw_clean = location_name.strip()
+    clean_name = sanitize_text(raw_clean).lower()
     
     # Resolve aliases first (e.g. vizag -> Visakhapatnam)
     clean_name = CITY_ALIASES.get(clean_name, clean_name)
     
-    # Check fallback / cached common Indian cities
+    # Check cached common Indian cities
     if clean_name in FALLBACK_CITIES:
         return FALLBACK_CITIES[clean_name]
 
+    # Search candidates (exact, then stripped of noise words like 'city', 'district')
+    candidates = [clean_name]
+    for noise in [" city", " district", " town", " port", " airport", " railway"]:
+        if noise in clean_name:
+            candidates.append(clean_name.replace(noise, "").strip())
+
     try:
-        async with httpx.AsyncClient(timeout=6.0) as client:
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            for query in candidates:
+                resp = await client.get(
+                    GEOCODING_URL,
+                    params={"name": query, "count": 3, "language": "en", "format": "json"}
+                )
+                if resp.status_code == 200:
+                    data = resp.json()
+                    if "results" in data and len(data["results"]) > 0:
+                        first = data["results"][0]
+                        city_clean = sanitize_text(first.get("name", query.title()))
+                        admin_clean = sanitize_text(first.get("admin1", ""))
+                        country_clean = sanitize_text(first.get("country", "India"))
+                        return {
+                            "name": city_clean,
+                            "lat": first.get("latitude"),
+                            "lon": first.get("longitude"),
+                            "country": country_clean,
+                            "admin1": admin_clean,
+                            "timezone": first.get("timezone", "auto")
+                        }
+    except Exception as e:
+        pass
+
+    # Safe fallback if completely unresolvable
+    return {"name": raw_clean.title(), "lat": 28.6139, "lon": 77.2090, "country": "India", "admin1": "Delhi"}
+
+
+async def reverse_geocode_coords(lat: float, lon: float) -> Dict[str, Any]:
+    """Reverse geocodes latitude and longitude coordinates into city, state, and country."""
+    headers = {"User-Agent": "WeatherGPT-Geolocator/2.0"}
+    try:
+        async with httpx.AsyncClient(timeout=6.0, headers=headers) as client:
             resp = await client.get(
-                GEOCODING_URL,
-                params={"name": location_name, "count": 3, "language": "en", "format": "json"}
+                "https://nominatim.openstreetmap.org/reverse",
+                params={"lat": lat, "lon": lon, "format": "json"}
             )
             if resp.status_code == 200:
                 data = resp.json()
-                if "results" in data and len(data["results"]) > 0:
-                    first = data["results"][0]
-                    return {
-                        "name": first.get("name", location_name),
-                        "lat": first.get("latitude"),
-                        "lon": first.get("longitude"),
-                        "country": first.get("country", ""),
-                        "admin1": first.get("admin1", ""),
-                        "timezone": first.get("timezone", "auto")
-                    }
+                addr = data.get("address", {})
+                city = (
+                    addr.get("city") or
+                    addr.get("town") or
+                    addr.get("municipality") or
+                    addr.get("state_district") or
+                    addr.get("county") or
+                    "Current Location"
+                )
+                state = addr.get("state", "")
+                country = addr.get("country", "India")
+                return {
+                    "name": sanitize_text(city),
+                    "lat": lat,
+                    "lon": lon,
+                    "country": sanitize_text(country),
+                    "admin1": sanitize_text(state),
+                    "timezone": "auto"
+                }
     except Exception as e:
-        print(f"Geocoding error for {location_name}: {e}")
+        pass
 
-    # Fallback to Delhi if nothing found
-    return {"name": location_name.title(), "lat": 28.6139, "lon": 77.2090, "country": "India", "admin1": "Delhi"}
+    return {"name": "Current Location", "lat": lat, "lon": lon, "country": "India", "admin1": ""}
 
 
 async def fetch_current_weather(location_name: str) -> Dict[str, Any]:
@@ -302,3 +362,86 @@ async def fetch_historical_climate(location_name: str, years_back: int = 1) -> D
         "historical_precipitation_sum": hist_total_rain or 2.4,
         "trend_summary": f"Currently {'warmer' if temp_diff > 0 else 'cooler'} by {abs(temp_diff)}°C compared to {years_back} year(s) ago."
     }
+
+
+async def fetch_past_weather(location_name: str, days: int = 10) -> Dict[str, Any]:
+    """
+    Retrieves previous N days (up to 30 days) of meteorological observations
+    from Open-Meteo archive using past_days parameter.
+    """
+    days = max(1, min(days, 30))
+    geo = await geocode_location(location_name)
+    lat = geo["lat"]
+    lon = geo["lon"]
+
+    params = {
+        "latitude": lat,
+        "longitude": lon,
+        "past_days": days,
+        "forecast_days": 1,
+        "daily": [
+            "weather_code",
+            "temperature_2m_max",
+            "temperature_2m_min",
+            "precipitation_sum",
+            "precipitation_probability_max",
+            "wind_speed_10m_max"
+        ],
+        "timezone": "auto"
+    }
+
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        resp = await client.get(WEATHER_FORECAST_URL, params=params)
+        resp.raise_for_status()
+        data = resp.json()
+
+    daily = data.get("daily", {})
+    times = daily.get("time", [])
+    tmaxs = daily.get("temperature_2m_max", [])
+    tmins = daily.get("temperature_2m_min", [])
+    rains = daily.get("precipitation_sum", [])
+    codes = daily.get("weather_code", [])
+    winds = daily.get("wind_speed_10m_max", [])
+
+    records = []
+    # Open-Meteo returns past_days + 1 forecast day (today). Keep up to past days
+    count = min(len(times), days + 1)
+    for i in range(count):
+        code = codes[i] if i < len(codes) else 0
+        wmo = WMO_CODE_MAP.get(code, {"desc": "Clear", "icon": "☀️"})
+        t_max = tmaxs[i] if i < len(tmaxs) else None
+        t_min = tmins[i] if i < len(tmins) else None
+        p_sum = rains[i] if i < len(rains) else 0.0
+        w_max = winds[i] if i < len(winds) else 0.0
+
+        records.append({
+            "date": times[i],
+            "temp_max": t_max,
+            "temp_min": t_min,
+            "precip_sum": round(p_sum, 1) if p_sum is not None else 0.0,
+            "wind_speed_max": round(w_max, 1) if w_max is not None else 0.0,
+            "condition": wmo["desc"],
+            "icon": wmo["icon"]
+        })
+
+    valid_tmax = [r["temp_max"] for r in records if r["temp_max"] is not None]
+    valid_tmin = [r["temp_min"] for r in records if r["temp_min"] is not None]
+    valid_rains = [r["precip_sum"] for r in records if r["precip_sum"] is not None]
+
+    avg_max = round(sum(valid_tmax) / len(valid_tmax), 1) if valid_tmax else 0.0
+    avg_min = round(sum(valid_tmin) / len(valid_tmin), 1) if valid_tmin else 0.0
+    total_rain = round(sum(valid_rains), 1) if valid_rains else 0.0
+
+    return {
+        "location": geo,
+        "requested_days": days,
+        "date_range": f"{records[0]['date']} to {records[-1]['date']}" if records else "",
+        "records": records,
+        "summary": {
+            "total_rainfall_mm": total_rain,
+            "avg_max_temp": avg_max,
+            "avg_min_temp": avg_min,
+            "days_recorded": len(records)
+        }
+    }
+

@@ -13,7 +13,8 @@ from langgraph.graph import StateGraph, END
 from backend.weather_tools import (
     fetch_current_weather,
     fetch_forecast_weather,
-    fetch_historical_climate
+    fetch_historical_climate,
+    fetch_past_weather
 )
 from backend.advisories import generate_crop_advisory, generate_commuter_advisory
 from backend.alerts import check_extreme_weather_alerts, simulate_extreme_scenario
@@ -63,6 +64,13 @@ async def tool_historical_climate(location: str, years_back: int = 1) -> Dict[st
     hist = await fetch_historical_climate(location, years_back=years_back)
     curr = await fetch_current_weather(location)
     return {"historical": hist, "current": curr}
+
+@tool
+async def tool_past_weather(location: str, days: int = 10) -> Dict[str, Any]:
+    """Retrieves previous N days (up to 30 days) of meteorological observations and summary."""
+    past = await fetch_past_weather(location, days=days)
+    curr = await fetch_current_weather(location)
+    return {"past_weather": past, "current": curr}
 
 @tool
 async def tool_commute_advisory(location: str) -> Dict[str, Any]:
@@ -137,7 +145,13 @@ COMMON_CITY_ALIASES = {
     "panaji": "Panaji",
 }
 
-CROP_KEYWORDS = ["wheat", "rice", "paddy", "cotton", "mustard", "sugarcane", "vegetable", "tomato", "potato"]
+CROP_KEYWORDS = [
+    "wheat", "rice", "paddy", "cotton", "mustard", "sugarcane", "maize", "corn",
+    "barley", "bajra", "jowar", "ragi", "millet", "soybean", "groundnut", "peanut",
+    "sunflower", "sesame", "chickpea", "chana", "tur", "arhar", "moong", "urad",
+    "masoor", "lentil", "tomato", "potato", "onion", "chilli", "mirchi", "brinjal",
+    "eggplant", "vegetable", "mango", "banana", "citrus", "lemon", "tea", "coffee", "turmeric"
+]
 WEATHER_KEYWORDS = [
     "weather", "temperature", "temp", "forecast", "rain", "rainy", "hot", "cold", "humidity", "wind",
     "climate", "history", "alert", "cyclone", "flood", "cloudburst", "heatwave", "storm", "hail",
@@ -222,29 +236,65 @@ async def supervisor_node(state: AgentState) -> AgentState:
     # Step C: Tool Selection Logic
     crop = next((cr for cr in CROP_KEYWORDS if cr in query_lower), None)
 
-    if any(w in query_lower for w in ["history", "historical", "past", "last year", "climate change", "trend", "compared to last year"]):
+    # 1. Past Weather (Previous N Days: "last 10 days", "past 7 days", "yesterday", "pichle 10 din")
+    is_past_query = (
+        any(p in query_lower for p in [
+            "last 10", "last 7", "last 5", "last 14", "past 10", "past 7", "past 5", "past 14",
+            "last week", "past week", "yesterday", "previous weather", "past weather",
+            "पिछले", "बीते", "गत"
+        ]) or (
+            ("last" in query_lower or "past" in query_lower or "previous" in query_lower) and
+            any(w in query_lower for w in ["day", "days", "din", "week", "weather", "data", "report"]) and
+            not any(w in query_lower for w in ["last year", "compared to last year"])
+        )
+    )
+
+    is_best_crop_query = any(w in query_lower for w in [
+        "best crop", "which crop", "suggest crop", "what to grow", "what should i grow",
+        "best to grow", "suitable crop", "crop suitability", "which crop is best", "फसल सुझाव", "कौन सी फसल"
+    ])
+
+    if is_past_query:
+        p_days = 10
+        m = re.search(r'(\d+)\s*(?:day|days|din)', query_lower)
+        if m:
+            p_days = max(1, min(int(m.group(1)), 30))
+        elif "week" in query_lower:
+            p_days = 7
+        elif "yesterday" in query_lower:
+            p_days = 1
+        state["tool_name"] = "get_past_weather"
+        state["tool_params"] = {"location": loc, "days": p_days}
+
+    elif any(w in query_lower for w in ["last year", "compared to last year", "climate change", "anomaly", "annual trend"]):
         state["tool_name"] = "get_historical_climate"
         state["tool_params"] = {"location": loc, "years_back": 1}
-    elif crop or any(w in query_lower for w in ["pesticide", "spray", "irrigation", "sowing", "harvest", "kisan", "farmer", "फसल", "किसान"]):
+
+    elif is_best_crop_query or crop or any(w in query_lower for w in ["pesticide", "spray", "irrigation", "sowing", "harvest", "kisan", "farmer", "फसल", "किसान"]):
+        target_crop = "best_recommendation" if is_best_crop_query else (crop or "general")
         state["tool_name"] = "get_crop_advisory"
-        state["tool_params"] = {"location": loc, "crop": crop or "general"}
+        state["tool_params"] = {"location": loc, "crop": target_crop}
+
     elif any(w in query_lower for w in ["alert", "warning", "danger", "cyclone", "flood", "cloudburst", "heatwave alert", "emergency", "अलर्ट"]):
         state["tool_name"] = "get_severe_alerts"
         state["tool_params"] = {"location": loc}
-    elif any(w in query_lower for w in ["tomorrow", "forecast", "weekend", "days", "next week", "rain on", "will it rain", "upcoming", "पूर्वानुमान"]):
-        days = 5
+
+    elif any(w in query_lower for w in ["tomorrow", "forecast", "weekend", "next", "upcoming", "rain on", "will it rain", "पूर्वानुमान"]):
+        f_days = 5
         if "tomorrow" in query_lower:
-            days = 2
+            f_days = 2
         elif "weekend" in query_lower:
-            days = 4
+            f_days = 4
         m = re.search(r'(\d+)\s*(?:day|days)', query_lower)
         if m:
-            days = max(1, min(int(m.group(1)), 14))
+            f_days = max(1, min(int(m.group(1)), 14))
         state["tool_name"] = "get_forecast"
-        state["tool_params"] = {"location": loc, "days": days}
+        state["tool_params"] = {"location": loc, "days": f_days}
+
     elif any(w in query_lower for w in ["commute", "travel", "umbrella", "drive", "traffic", "fog", "office"]):
         state["tool_name"] = "get_commute_advisory"
         state["tool_params"] = {"location": loc}
+
     else:
         state["tool_name"] = "get_current_weather"
         state["tool_params"] = {"location": loc}
@@ -265,6 +315,8 @@ async def tool_executor_node(state: AgentState) -> AgentState:
             state["tool_data"] = await tool_forecast_weather.ainvoke({"location": loc, "days": params.get("days", 5)})
         elif tool_name == "get_crop_advisory":
             state["tool_data"] = await tool_crop_advisory.ainvoke({"location": loc, "crop": params.get("crop", "general")})
+        elif tool_name == "get_past_weather":
+            state["tool_data"] = await tool_past_weather.ainvoke({"location": loc, "days": params.get("days", 10)})
         elif tool_name == "get_severe_alerts":
             data = await tool_severe_alerts.ainvoke({"location": loc})
             # If no live natural disaster, simulate requested scenario if user is testing
@@ -355,12 +407,53 @@ async def synthesizer_node(state: AgentState) -> AgentState:
                 state["reply_text"] = f"📅 **{days}-Day Weather Forecast for {loc}**:\n\n{bullet_text}\n\nCheck the interactive 24-hr temperature & precipitation curve below."
                 state["voice_summary"] = f"Here is the {days}-day weather forecast for {loc}."
 
+        elif tool_name == "get_past_weather":
+            past_info = tool_data.get("past_weather", {})
+            records = past_info.get("records", [])
+            summary = past_info.get("summary", {})
+            date_range = past_info.get("date_range", "")
+            p_days = past_info.get("requested_days", 10)
+
+            # Build comprehensive Markdown Table with columns
+            table_lines = [
+                f"📊 **Past {p_days} Days Weather Data for {loc}** ({date_range})",
+                "",
+                f"• **Average Max Temp**: **{summary.get('avg_max_temp')}°C** | **Average Min Temp**: **{summary.get('avg_min_temp')}°C**",
+                f"• **Total Rainfall Recorded**: **{summary.get('total_rainfall_mm')} mm** across {summary.get('days_recorded')} observation days",
+                "",
+                "| Date | Condition | Max Temp | Min Temp | Rain (mm) | Wind (km/h) |",
+                "|:---|:---:|:---:|:---:|:---:|:---:|"
+            ]
+            for r in records:
+                table_lines.append(
+                    f"| {r['date']} | {r['icon']} {r['condition']} | {r['temp_max']}°C | {r['temp_min']}°C | {r['precip_sum']} mm | {r['wind_speed_max']} km/h |"
+                )
+
+            state["reply_text"] = "\n".join(table_lines)
+            state["voice_summary"] = f"Here is the past {p_days} days weather history for {loc}. Total rainfall was {summary.get('total_rainfall_mm')} millimeters."
+
         elif tool_name == "get_crop_advisory":
             adv = tool_data.get("advisory", {})
             crop_name = adv.get("crop", "General Crop")
             spray_status = "✅ " + adv.get("spray_guidance", "") if adv.get("spray_feasible") else "⚠️ " + adv.get("spray_guidance", "")
+            ranked = adv.get("ranked_crops", [])
 
-            if lang == "hi":
+            if adv.get("is_best_recommendation") and ranked:
+                lines = [
+                    f"🌾 **Best Crops to Grow in {loc} (Current Weather & Soil Telemetry)**",
+                    "",
+                    f"• **Current Observation**: {tool_data.get('weather', {}).get('temperature', 28)}°C, Humidity: {tool_data.get('weather', {}).get('humidity', 50)}%",
+                    f"• **Spraying Status**: {spray_status}",
+                    "",
+                    "| Rank | Recommended Crop | Suitability | Badge | Key Agronomic Care |",
+                    "|:---:|:---|:---:|:---:|:---|"
+                ]
+                for idx, rc in enumerate(ranked, 1):
+                    lines.append(f"| {idx} | **{rc['crop_name']}** | {rc['score']}% | {rc['badge']} | {rc['rationale']} |")
+
+                state["reply_text"] = "\n".join(lines)
+                state["voice_summary"] = f"The top recommended crops for {loc} are {ranked[0]['crop_name']} and {ranked[1]['crop_name']}."
+            elif lang == "hi":
                 state["reply_text"] = (
                     f"🌾 **{crop_name} किसान कृषि सलाह ({loc})**\n\n"
                     f"• **सिंचाई स्थिति**: {adv.get('irrigation_details')}\n"

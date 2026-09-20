@@ -20,8 +20,11 @@ from backend.weather_tools import (
     fetch_current_weather,
     fetch_forecast_weather,
     fetch_historical_climate,
-    geocode_location
+    fetch_past_weather,
+    geocode_location,
+    reverse_geocode_coords
 )
+from backend.advisories import rank_best_crops_for_weather
 from backend.alerts import (
     SAVED_LOCATIONS,
     check_extreme_weather_alerts,
@@ -164,6 +167,26 @@ async def get_forecast(city: str = "Delhi", days: int = 7):
 async def get_history(city: str = "Delhi", years: int = 1):
     """Fetches historical climate anomaly comparison."""
     return await fetch_historical_climate(city, years_back=years)
+
+
+@app.get("/api/weather/past")
+async def get_past(city: str = "Delhi", days: int = 10):
+    """Fetches previous N days of actual meteorological observations."""
+    return await fetch_past_weather(city, days=days)
+
+
+@app.get("/api/weather/reverse-geocode")
+async def reverse_geocode_endpoint(lat: float, lon: float):
+    """Reverse geocodes latitude and longitude into local area and city."""
+    return await reverse_geocode_coords(lat, lon)
+
+
+@app.get("/api/advisories/crops/ranking")
+async def get_crop_rankings(city: str = "Delhi"):
+    """Computes dynamic suitability rankings for 30+ crops based on active weather."""
+    curr = await fetch_current_weather(city)
+    fore = await fetch_forecast_weather(city, days=3)
+    return rank_best_crops_for_weather(curr, fore, top_n=8)
 
 
 @app.get("/api/saved-locations")
