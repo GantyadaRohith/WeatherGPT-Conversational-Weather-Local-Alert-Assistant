@@ -249,10 +249,17 @@ async def supervisor_node(state: AgentState) -> AgentState:
         )
     )
 
-    is_best_crop_query = any(w in query_lower for w in [
-        "best crop", "which crop", "suggest crop", "what to grow", "what should i grow",
-        "best to grow", "suitable crop", "crop suitability", "which crop is best", "फसल सुझाव", "कौन सी फसल"
-    ])
+    # 2. Agricultural & Crop Advisory Intent (handles crop recommendations, suitability, spraying, farming)
+    is_crop_related = (
+        crop is not None or
+        any(w in query_lower for w in [
+            "crop", "crops", "farming", "farmer", "agriculture", "agri", "kisan", "kheti", "krishi",
+            "pesticide", "spray", "spraying", "irrigation", "irrigate", "sowing", "sow", "harvest",
+            "recomendation", "recommendation", "recommended", "recomend", "recommend",
+            "what to grow", "what should i grow", "best to grow", "suitable crop", "which crop",
+            "फसल", "किसान", "खेती", "कृषि", "कीटनाशक", "छिड़काव", "सिंचाई", "పంట", "రైతు"
+        ])
+    )
 
     if is_past_query:
         p_days = 10
@@ -270,8 +277,9 @@ async def supervisor_node(state: AgentState) -> AgentState:
         state["tool_name"] = "get_historical_climate"
         state["tool_params"] = {"location": loc, "years_back": 1}
 
-    elif is_best_crop_query or crop or any(w in query_lower for w in ["pesticide", "spray", "irrigation", "sowing", "harvest", "kisan", "farmer", "फसल", "किसान"]):
-        target_crop = "best_recommendation" if is_best_crop_query else (crop or "general")
+    elif is_crop_related:
+        # If a specific crop (e.g. paddy, wheat, cotton) was named, pass that; otherwise 'best_recommendation'
+        target_crop = crop if crop else "best_recommendation"
         state["tool_name"] = "get_crop_advisory"
         state["tool_params"] = {"location": loc, "crop": target_crop}
 

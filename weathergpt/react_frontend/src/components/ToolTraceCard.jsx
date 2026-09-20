@@ -24,6 +24,7 @@ export default function ToolTraceCard({ trace }) {
 
   const confidenceScore = Math.round((trace.confidence || 0.95) * 100);
   const isRefusal = trace.tool_picked === 'domain_fallback_guard';
+  const isGroq = String(trace.llm_engine || '').toLowerCase().includes('groq');
 
   return (
     <div className="trace-panel">
@@ -35,7 +36,18 @@ export default function ToolTraceCard({ trace }) {
         <div className="trace-meta">
           <span>⚡ {trace.latency_ms || 120} ms</span>
           <span>• Grounding: {confidenceScore}%</span>
-          <span>• Engine: {trace.llm_engine || 'langgraph_agent'}</span>
+          <span
+            style={{
+              padding: '2px 8px',
+              borderRadius: '10px',
+              background: isGroq ? 'rgba(249, 115, 22, 0.2)' : 'rgba(56, 189, 248, 0.15)',
+              color: isGroq ? '#fb923c' : '#38bdf8',
+              fontWeight: 600,
+              border: `1px solid ${isGroq ? 'rgba(249, 115, 22, 0.4)' : 'rgba(56, 189, 248, 0.3)'}`
+            }}
+          >
+            {isGroq ? `☁️ Groq API: ${trace.llm_engine}` : `⚙️ Engine: ${trace.llm_engine || 'langgraph_agent'}`}
+          </span>
         </div>
       </div>
 

@@ -234,18 +234,9 @@ export default function App() {
 
       setMessages((prev) => [...prev, assistantMsg]);
 
-      // Sync fixed hero location with user's queried city if different
-      if (data.weather_card?.location?.name) {
-        const queryCity = data.weather_card.location.name;
-        if (queryCity && queryCity.toLowerCase() !== fixedCity.toLowerCase()) {
-          setFixedCity(queryCity);
-          fetchHeroData(queryCity);
-        }
-      }
-
-      // If extreme alert is present, trigger banner
-      if (data.alerts && data.alerts.length > 0) {
-        setActiveHazard(data.alerts[0]);
+      // Voice readout if enabled
+      if (voiceEnabled && data.voice_summary) {
+        speakText(data.voice_summary, data.language || activeLang);
       }
 
       // Voice readout if enabled
